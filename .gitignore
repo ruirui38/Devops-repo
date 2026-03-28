@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+.pytest_cache
+*.pyc
+venv/
+
+# 環境変数
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
