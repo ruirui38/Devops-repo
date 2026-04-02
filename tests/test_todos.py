@@ -1,19 +1,28 @@
+import os
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
 from main import app
 from database import get_session
 
-# テスト用のDBを使う
+load_dotenv()
+
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = "127.0.0.1"
+DB_PORT = os.getenv("DB_PORT", "3307")
+DB_TEST_NAME = os.getenv("DB_TEST_NAME", "tododb_test")
+
+TEST_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_TEST_NAME}"
+
+# テスト用のDBを使う（DockerのMySQLに接続）
 @pytest.fixture
 def client():
-    engine = create_engine(
-        "mysql+pymysql://root:ikimono0308@localhost/tododb_test"
-    )
+    engine = create_engine(TEST_DATABASE_URL)
     # テーブル作成
-    SQLModel.metadata.create_all(engine)  
+    SQLModel.metadata.create_all(engine)
 
     def get_test_session():
         with Session(engine) as session:
@@ -23,7 +32,7 @@ def client():
     client = TestClient(app)
     yield client
     # テスト後にテーブル削除
-    SQLModel.metadata.drop_all(engine)  
+    SQLModel.metadata.drop_all(engine)
     app.dependency_overrides.clear()
 
 # ===== 正常系 =====
@@ -89,7 +98,7 @@ def test_delete_todo(client):
 
     # 削除
     response = client.delete(f"/todos/{todo_id}")
-    assert response.status_code == 200
+    assert response.status_code == 204
 
 
 # ===== 異常系 =====
