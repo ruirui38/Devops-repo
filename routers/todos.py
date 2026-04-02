@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import Session, select
 
 from database import get_session
@@ -54,4 +54,4 @@ def delete_todo(todo_id: int, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="タスクが見つかりません")
     session.delete(todo)
     session.commit()
-    return {"message": "タスクを削除しました"}
+    return Response(status_code=204)
