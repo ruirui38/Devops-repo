@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Literal  
+from typing import Optional, Literal
 
 from pydantic import field_validator
 from sqlalchemy import Column, Text, TIMESTAMP, text
@@ -11,13 +11,14 @@ class TodoCreate(SQLModel):
     todo: str = Field(max_length=255)
     status: Literal["InProgress", "Complete", "Cancel"]
 
-    #空文字のバリデーション
+    # 空文字のバリデーション
     @field_validator("title", "todo", "status")
     @classmethod
     def not_empty(cls, v):
         if not v.strip():
             raise ValueError("入力は必須です")
         return v
+
 
 class Todo(SQLModel, table=True):
     __tablename__ = "todos"
