@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: pip install flake8 black mypy
+
+      - name: 静的解析（flake8）
+        run: flake8 . --max-line-length=120 --exclude=.git,__pycache__
+
+      - name: コードフォーマットチェック（Black）
+        run: black --check .
+
+      - name: 型チェック（mypy）
+        run: mypy . --ignore-missing-imports

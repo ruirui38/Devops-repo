@@ -18,15 +18,9 @@ else:
 with Session(engine) as session:
     existing = session.exec(select(Todo)).all()
     if len(existing) == 0:
-        todo1 = Todo(
-            title="最初タスク", 
-            todo="dbにタスクを登録", 
-            status="Complete"
-        )
+        todo1 = Todo(title="最初タスク", todo="dbにタスクを登録", status="Complete")
         todo2 = Todo(
-            title="2番目のタスク",
-            todo="2番目のタスクを登録",
-            status="InProgress"
+            title="2番目のタスク", todo="2番目のタスクを登録", status="InProgress"
         )
         session.add(todo1)
         session.add(todo2)

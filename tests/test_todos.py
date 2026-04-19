@@ -15,7 +15,10 @@ DB_HOST = "127.0.0.1"
 DB_PORT = os.getenv("DB_PORT", "3307")
 DB_TEST_NAME = os.getenv("DB_TEST_NAME", "tododb_test")
 
-TEST_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_TEST_NAME}"
+TEST_DATABASE_URL = (
+    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_TEST_NAME}"
+)
+
 
 # テスト用のDBを使う（DockerのMySQLに接続）
 @pytest.fixture
@@ -35,31 +38,33 @@ def client():
     SQLModel.metadata.drop_all(engine)
     app.dependency_overrides.clear()
 
+
 # ===== 正常系 =====
 
+
 def test_create_todo(client):
-    response = client.post("/todos", json={
-        "title": "テストタスク",
-        "todo": "テスト内容",
-        "status": "InProgress"
-    })
+    response = client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
     assert response.status_code == 201
     assert response.json()["title"] == "テストタスク"
     assert response.json()["todo"] == "テスト内容"
     assert response.json()["status"] == "InProgress"
+
 
 def test_get_todos(client):
     response = client.get("/todos")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
+
 def test_get_todo(client):
     # まず作成
-    create = client.post("/todos", json={
-        "title": "テストタスク",
-        "todo": "テスト内容",
-        "status": "InProgress"
-    })
+    create = client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
     todo_id = create.json()["id"]
 
     # 取得
@@ -67,33 +72,32 @@ def test_get_todo(client):
     assert response.status_code == 200
     assert response.json()["id"] == todo_id
 
+
 def test_update_todo(client):
     # まず作成
-    create = client.post("/todos", json={
-        "title": "テストタスク",
-        "todo": "テスト内容",
-        "status": "InProgress"
-    })
+    create = client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
     todo_id = create.json()["id"]
 
     # 更新
-    response = client.put(f"/todos/{todo_id}", json={
-        "title": "更新タスク",
-        "todo": "更新内容",
-        "status": "Complete"
-    })
+    response = client.put(
+        f"/todos/{todo_id}",
+        json={"title": "更新タスク", "todo": "更新内容", "status": "Complete"},
+    )
     assert response.status_code == 200
     assert response.json()["title"] == "更新タスク"
     assert response.json()["todo"] == "更新内容"
     assert response.json()["status"] == "Complete"
 
+
 def test_delete_todo(client):
     # まず作成
-    create = client.post("/todos", json={
-        "title": "テストタスク",
-        "todo": "テスト内容",
-        "status": "InProgress"
-    })
+    create = client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
     todo_id = create.json()["id"]
 
     # 削除
@@ -103,33 +107,38 @@ def test_delete_todo(client):
 
 # ===== 異常系 =====
 
+
 def test_create_todo_empty_title(client):
-    response = client.post("/todos", json={
-        "title": "",
-        "todo": "テスト内容",
-        "status": "InProgress"
-    })
+    response = client.post(
+        "/todos", json={"title": "", "todo": "テスト内容", "status": "InProgress"}
+    )
     assert response.status_code == 422
 
+
 def test_create_todo_invalid_status(client):
-    response = client.post("/todos", json={
-        "title": "テストタスク",
-        "todo": "テスト内容",
-        "status": "無効なステータス"
-    })
+    response = client.post(
+        "/todos",
+        json={
+            "title": "テストタスク",
+            "todo": "テスト内容",
+            "status": "無効なステータス",
+        },
+    )
     assert response.status_code == 422
+
 
 def test_get_todo_not_found(client):
     response = client.get("/todos/9999")
     assert response.status_code == 404
 
+
 def test_update_todo_not_found(client):
-    response = client.put("/todos/9999", json={
-        "title": "更新タスク",
-        "todo": "更新内容",
-        "status": "Complete"
-    })
+    response = client.put(
+        "/todos/9999",
+        json={"title": "更新タスク", "todo": "更新内容", "status": "Complete"},
+    )
     assert response.status_code == 404
+
 
 def test_delete_todo_not_found(client):
     response = client.delete("/todos/9999")
