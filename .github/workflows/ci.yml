@@ -29,3 +29,41 @@ jobs:
 
       - name: 型チェック（mypy）
         run: mypy . --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: tododb_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt pytest httpx
+
+      - name: テスト実行（pytest）
+        env:
+          DB_USER: root
+          DB_PASSWORD: ""
+          DB_PORT: "3306"
+          DB_TEST_NAME: tododb_test
+        run: pytest tests/ -v
