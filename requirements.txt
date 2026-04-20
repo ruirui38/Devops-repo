@@ -5,3 +5,5 @@ pymysql
 python-dotenv
 pydantic
 cryptography
+pytest
+httpx
