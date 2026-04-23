@@ -43,7 +43,7 @@ jobs:
         id: task-def
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ vars.ECS_SERVICE }} \
+            --task-definition ${{ vars.TASK_DEFINITION }} \
             --query taskDefinition \
             --output json > task-definition.json
 
