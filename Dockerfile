@@ -10,4 +10,4 @@ COPY . .
 
 RUN sed -i 's/\r//' entrypoint.sh && chmod +x entrypoint.sh
 
-CMD ["./entrypoint.sh"]
+CMD ["/bin/bash", "entrypoint.sh"]
