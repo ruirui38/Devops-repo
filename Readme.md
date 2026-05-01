@@ -220,6 +220,129 @@ docker-compose up --build
 
 ---
 
+## CI/CD パイプライン
+
+### 概要
+
+このリポジトリでは GitHub Actions を使って CI/CD を自動化しています。
+
+```
+Pull Request → main         Push → main
+      │                          │
+   [CI ワークフロー]          [CD ワークフロー]
+      │                          │
+  ┌───┴────┐              ┌──────┴──────┐
+  │ lint   │              │   deploy    │
+  │ test   │              │ (AWS ECS)   │
+  └────────┘              └─────────────┘
+```
+
+| ワークフロー | ファイル | トリガー | 内容 |
+|------------|---------|---------|------|
+| CI | `.github/workflows/ci.yml` | `main` へのPull Request | 静的解析・テスト |
+| CD | `.github/workflows/cd.yml` | `main` へのpush | ECRへのビルド＆プッシュ・ECSデプロイ |
+
+---
+
+### CI ワークフロー詳細
+
+`main` ブランチへのPull Requestが作成または更新されると自動実行されます。
+
+#### lint ジョブ
+
+| ステップ | ツール | 内容 |
+|---------|-------|------|
+| 静的解析 | flake8 | PEP8準拠チェック（最大行長120文字） |
+| フォーマットチェック | Black | コードスタイル統一の確認 |
+| 型チェック | mypy | 型アノテーションの検証 |
+
+#### test ジョブ
+
+MySQL 8.0 のサービスコンテナを起動してから `pytest tests/ -v` を実行します。テスト用DBは `tododb_test` が自動作成されます。
+
+---
+
+### CD ワークフロー詳細
+
+`main` ブランチへのpushで自動実行されます。AWS認証にはOIDCを使用しており、長期的なアクセスキーは不要です。
+
+| ステップ | 内容 |
+|---------|------|
+| AWS認証（OIDC） | IAMロールをAssumeしてAWS操作権限を取得 |
+| ECRログイン | Amazon ECRへのDocker認証 |
+| イメージビルド＆プッシュ | `linux/arm64` 向けにビルドし、コミットSHAタグと `latest` タグでプッシュ |
+| タスク定義取得 | 現在のECSタスク定義をAWS APIから取得 |
+| タスク定義更新 | 新しいイメージでタスク定義を再レンダリング |
+| ECSデプロイ | サービスを更新し、安定稼働まで待機 |
+
+---
+
+### 必要な Secrets と Variables
+
+AWS認証にOIDCを使用しているため、**AWSアクセスキーのSecretは不要**です。  
+以下の Variables をリポジトリの `Settings > Secrets and variables > Actions` で設定してください。
+
+#### Variables（`vars.*`）
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `AWS_IAM_ROLE_ARN` | OIDCでAssumeするIAMロールのARN | `arn:aws:iam::123456789012:role/github-actions-role` |
+| `AWS_REGION` | デプロイ先のAWSリージョン | `ap-northeast-1` |
+| `ECR_REPOSITORY` | ECRリポジトリ名 | `todo-api` |
+| `TASK_DEFINITION` | ECSタスク定義名 | `todo-api-task` |
+| `CONTAINER_NAME` | タスク定義内のコンテナ名 | `todo-api` |
+| `ECS_SERVICE` | ECSサービス名 | `todo-api-service` |
+| `ECS_CLUSTER` | ECSクラスター名 | `todo-api-cluster` |
+
+#### Secrets（`secrets.*`）
+
+| シークレット名 | 説明 |
+|-------------|------|
+| なし | OIDCを使用するため、AWS認証情報のシークレットは不要 |
+
+> **OIDC設定について**  
+> IAMロールの信頼ポリシーに GitHub Actions の OIDC プロバイダー（`token.actions.githubusercontent.com`）を追加し、このリポジトリからのみAssumeできるよう制限してください。
+
+---
+
+### 動作確認手順
+
+#### CI の確認
+
+1. `main` ブランチから作業ブランチを作成してPull Requestを作成する
+2. GitHub リポジトリの **Actions** タブを開く
+3. `CI` ワークフローが自動起動することを確認する
+4. `lint` と `test` の両ジョブが緑（成功）になれば正常動作
+
+```bash
+# ローカルでCIと同等のチェックを事前に実行する場合
+pip install flake8 black mypy pytest httpx
+flake8 . --max-line-length=120 --exclude=.git,__pycache__
+black --check .
+mypy . --ignore-missing-imports
+pytest tests/ -v
+```
+
+#### CD の確認
+
+1. Pull RequestをレビューしてマージするとCDが自動起動する
+2. GitHub リポジトリの **Actions** タブで `CD` ワークフローを開く
+3. 各ステップが順番に成功していることを確認する
+4. **ECSサービスをデプロイ** ステップで `wait-for-service-stability: true` により、タスクが正常起動するまでワークフローが待機する
+5. デプロイ完了後、ECSサービスのURLで動作確認を行う
+
+#### よくある失敗ケースと対処
+
+| エラー | 原因 | 対処 |
+|-------|------|------|
+| `lint` ジョブ失敗 | コードスタイル違反 | `black .` でフォーマット修正後、再プッシュ |
+| `test` ジョブ失敗 | テストコードのエラー | ローカルで `pytest tests/ -v` を実行して確認 |
+| OIDC認証エラー | IAMロールの信頼ポリシー設定ミス | IAMロールのConditionとリポジトリ名を確認 |
+| ECRプッシュ失敗 | IAMロールにECR権限がない | IAMロールのポリシーに `ecr:*` 権限を付与 |
+| ECSデプロイタイムアウト | タスクが起動失敗している | ECSタスクのログをCloudWatch Logsで確認 |
+
+---
+
 ## テストの実行方法
 
 ### 前提条件
