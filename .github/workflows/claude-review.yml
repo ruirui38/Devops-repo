@@ -31,7 +31,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
-          show_full_output: "true"
           claude_args: '--allowedTools "Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"'
           prompt: |
             このPull Request（#${{ github.event.pull_request.number }}）を日本語でレビューしてください。
