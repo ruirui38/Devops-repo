@@ -34,6 +34,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          claude_args: '--allowedTools "Edit,Write,Bash(git diff:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr comment:*),Bash(gh issue comment:*)"'
         env:
           CLAUDE_CODE_USE_BEDROCK: "1"
           ANTHROPIC_MODEL: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
