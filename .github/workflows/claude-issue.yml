@@ -1,0 +1,48 @@
+name: Claude Implement Issue
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  implement:
+    if: github.event.label.name == 'ai-implement'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Implement issue
+        uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          ANTHROPIC_MODEL: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
+            以下のIssueを実装してください。
+
+            タイトル: ${{ github.event.issue.title }}
+            本文: |
+            ${{ github.event.issue.body }}
+
+            .claude/agents/feature-implementer.md の feature-implementer サブエージェントを
+            Task ツール経由で起動して実装を任せてください。
+
+            実装完了後、ブランチ名 `ai/issue-${{ github.event.issue.number }}` で
+            変更をPushし、mainへのPull Requestを作成してください。
+            PRの本文に、Issue番号を `Closes #${{ github.event.issue.number }}` で
+            リンクしてください。

@@ -1,0 +1,41 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          ANTHROPIC_MODEL: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
+            このPull Requestを日本語でレビューしてください。
+
+            .claude/agents/code-reviewer.md の code-reviewer サブエージェントを
+            Task ツール経由で起動してレビューを実施してください。
+
+            レビューが終わったら、指摘内容を「## 総評」「## 要修正」「## 提案」の
+            3セクションに整理してPRにコメントとして投稿してください。
+            大きな問題がない場合は「## 総評」だけを短く返してください。
