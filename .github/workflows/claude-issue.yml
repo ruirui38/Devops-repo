@@ -32,7 +32,8 @@ jobs:
           ANTHROPIC_MODEL: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          direct_prompt: |
+          use_bedrock: "true"
+          prompt: |
             以下のIssueを実装してください。
 
             タイトル: ${{ github.event.issue.title }}
