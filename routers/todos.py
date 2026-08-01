@@ -31,7 +31,7 @@ def get_todos(session: Session = Depends(get_session)):
 def get_todo(todo_id: int, session: Session = Depends(get_session)):
     todo = session.get(Todo, todo_id)
     if not todo:
-        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+        raise HTTPException(status_code=404, detail="Task not found")
     return todo
 
 
@@ -42,7 +42,7 @@ def update_todo(
 ):
     todo = session.get(Todo, todo_id)
     if not todo:
-        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+        raise HTTPException(status_code=404, detail="Task not found")
     todo.title = todo_data.title
     todo.todo = todo_data.todo
     todo.status = todo_data.status
@@ -56,7 +56,7 @@ def update_todo(
 def delete_todo(todo_id: int, session: Session = Depends(get_session)):
     todo = session.get(Todo, todo_id)
     if not todo:
-        raise HTTPException(status_code=404, detail="タスクが見つかりません")
+        raise HTTPException(status_code=404, detail="Task not found")
     session.delete(todo)
     session.commit()
     return Response(status_code=204)

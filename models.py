@@ -16,7 +16,7 @@ class TodoCreate(SQLModel):
     @classmethod
     def not_empty(cls, v):
         if not v.strip():
-            raise ValueError("入力は必須です")
+            raise ValueError("Input is required")
         return v
 
 
