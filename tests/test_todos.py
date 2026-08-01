@@ -1,5 +1,6 @@
 import os
 import pytest
+from datetime import datetime
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
@@ -51,12 +52,22 @@ def test_create_todo(client):
     assert response.json()["title"] == "テストタスク"
     assert response.json()["todo"] == "テスト内容"
     assert response.json()["status"] == "InProgress"
+    assert "created_at" in response.json()
+    assert response.json()["created_at"] is not None
 
 
 def test_get_todos(client):
+    # タスクを作成してから一覧取得
+    client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
     response = client.get("/todos")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+    if len(response.json()) > 0:
+        assert "created_at" in response.json()[0]
+        assert response.json()[0]["created_at"] is not None
 
 
 def test_get_todo(client):
@@ -71,6 +82,8 @@ def test_get_todo(client):
     response = client.get(f"/todos/{todo_id}")
     assert response.status_code == 200
     assert response.json()["id"] == todo_id
+    assert "created_at" in response.json()
+    assert response.json()["created_at"] is not None
 
 
 def test_update_todo(client):
@@ -103,6 +116,27 @@ def test_delete_todo(client):
     # 削除
     response = client.delete(f"/todos/{todo_id}")
     assert response.status_code == 204
+
+
+def test_created_at_format(client):
+    # タスク作成
+    response = client.post(
+        "/todos",
+        json={"title": "テストタスク", "todo": "テスト内容", "status": "InProgress"},
+    )
+    assert response.status_code == 201
+
+    # created_atが存在し、ISO形式でパース可能であることを確認
+    created_at_str = response.json()["created_at"]
+    assert created_at_str is not None
+
+    # ISO形式の日時文字列をパース
+    created_at = datetime.fromisoformat(created_at_str)
+
+    # YYYY/MM/DD形式にフォーマット可能であることを確認
+    formatted_date = created_at.strftime("%Y/%m/%d")
+    assert len(formatted_date) == 10  # "YYYY/MM/DD"は10文字
+    assert formatted_date.count("/") == 2  # スラッシュが2つ
 
 
 # ===== 異常系 =====
