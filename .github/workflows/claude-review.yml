@@ -33,11 +33,18 @@ jobs:
           use_bedrock: "true"
           show_full_output: "true"
           prompt: |
-            このPull Requestを日本語でレビューしてください。
+            このPull Request（#${{ github.event.pull_request.number }}）を日本語でレビューしてください。
 
             .claude/agents/code-reviewer.md の code-reviewer サブエージェントを
             Task ツール経由で起動してレビューを実施してください。
 
             レビューが終わったら、指摘内容を「## 総評」「## 要修正」「## 提案」の
-            3セクションに整理してPRにコメントとして投稿してください。
-            大きな問題がない場合は「## 総評」だけを短く返してください。
+            3セクションに整理してください。大きな問題がない場合は「## 総評」だけを短く返してください。
+
+            整理した内容は、必ずBashツールで以下のコマンドを実行してPRに投稿してください。
+            レビュー内容をチャットで返信するだけでは投稿されないので、このコマンド実行を省略しないでください。
+
+              gh pr comment ${{ github.event.pull_request.number }} --body "<レビュー本文>"
+
+            本文が長い/改行を含む場合は、一時ファイルに書き出してから
+            `gh pr comment ${{ github.event.pull_request.number }} --body-file <ファイルパス>` を使ってください。
