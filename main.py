@@ -18,7 +18,7 @@ app.include_router(todos_router)
 
 
 @app.get("/health")
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "healthy"}
 
 
